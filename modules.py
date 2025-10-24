@@ -1,9 +1,14 @@
+from pandas import DataFrame, Series
+from yfinance import Ticker
 import yfinance as yf
+import numpy as np
 
 ## OBTER DADOS DE TICKER ##
 
 
-def get_ticker(simbolo_ticker, periodo="5y", intervalo="1d"):
+def get_ticker(
+    simbolo_ticker: str, periodo: str = "5y", intervalo: str = "1d"
+) -> DataFrame:
     """
     Obtém o objeto Ticker do yfinance para o símbolo fornecido.
 
@@ -15,17 +20,22 @@ def get_ticker(simbolo_ticker, periodo="5y", intervalo="1d"):
         pd.DataFrame: DataFrame contendo os dados históricos do ativo.
     """
 
-    ticker = yf.Ticker(simbolo_ticker)
+    ticker: Ticker = yf.Ticker(simbolo_ticker)
+
+    df: DataFrame = ticker.history(
+        period=periodo, interval=intervalo
+    ).reset_index()
 
     # Coluna renomeada para "Datetime" para evitar conflitos de timeframe
-    df = ticker.history(period=periodo, interval=intervalo).reset_index()
-    column_old_name = df.columns[0]
-    column_new_name = "Datetime"
+    nome_original_coluna: str = df.columns[0]
+    novo_nome_coluna: str = "Datetime"
 
-    df.rename(columns={column_old_name: column_new_name}, inplace=True)
+    df.rename(columns={nome_original_coluna: novo_nome_coluna}, inplace=True)
 
     # Remoção de colunas desnecessárias
-    df = df.drop(columns=["Dividends", "Stock Splits", "Capital Gains"])
+    df: DataFrame = df.drop(
+        columns=["Dividends", "Stock Splits", "Capital Gains"]
+    )
 
     return df
 
@@ -33,7 +43,9 @@ def get_ticker(simbolo_ticker, periodo="5y", intervalo="1d"):
 ## CALCULAR EMAS ##
 
 
-def adicionar_ema(df, periodos=[20, 50, 100, 200]):
+def adicionar_cols_ema(
+    df: DataFrame, periodos: list[int] = [20, 50, 100, 200]
+) -> DataFrame:
     """
     Cria colunas de EMAs no dataframe para os spans fornecidos.
     Args:
@@ -41,9 +53,12 @@ def adicionar_ema(df, periodos=[20, 50, 100, 200]):
         periodos (list): Lista de períodos para os quais as EMAs serão calculadas (padrão é [20, 50, 100, 200])
     Returns:
         pd.DataFrame: DataFrame com colunas adicionais para cada EMA calculada.
+    Nota:
+        - Valores ausentes na coluna 'Close' serão ignorados.
+        - Spans inválidos (ex.: negativos ou zero) não serão processados.
     """
 
-    df_ema = df.copy()
+    df_ema: DataFrame = df.copy()
 
     # Cria 4 colunas EMA para os spans fornecidos
     for span in periodos:
@@ -52,88 +67,113 @@ def adicionar_ema(df, periodos=[20, 50, 100, 200]):
     return df_ema
 
 
-## Plotar Gráfico ##
+## PLOTAR GRÁFICO ##
 
 
-def plotar_EMA(df): ...
+def plotar_EMA(df: DataFrame) -> None: ...
 
 
-## CALCULAR PROGRESSO ##
+## CALCULAR RAZÃO ##
 
 
-def adicionar_pctg(df):
+def adicionar_col_razao(
+    df: DataFrame, col_ref: str, col_result: str
+) -> DataFrame:
     """
-    Calcula o progresso do investimento ao longo do tempo.
+    Calcula a razão(ratio) do progresso do investimento.
     Args:
         df (pd.DataFrame): DataFrame contendo os dados históricos do ativo.
-        investimento (float): Valor inicial do investimento.
+        col_ref (str): String contendo o nome da coluna de referencia do calculo.
+        col_result (str): String contendo o nome da coluna resultante do calculo.
     Returns:
+        pd.DataFrame: DataFrame com a coluna razão calculada.
     """
 
-    df_progresso = df.copy()
+    df_razao: DataFrame = df.copy()
 
     # Calcula a variação percentual diária
-    df_progresso["Pctg_Variação"] = df["Close"].pct_change()
+    df_razao[col_result] = df[col_ref].pct_change()
 
-    # Preenche valores NaN com 0 para evitar problemas em cálculos
-    df_progresso["Pctg_Variação"] = df_progresso["Pctg_Variação"].fillna(0)
-
-    return df_progresso
+    return df_razao
 
 
 ## ESTRATÉGIA ##
 
 
-def aplicar_estrategia(df, investimento):
+def adicionar_col_razao_estrategia(
+    df: DataFrame, col_razao: str, col_result: str
+) -> DataFrame:
     """
-    Aplica a estratégia de investimento ao DataFrame.
+    Determina quando a estrategia está ativa.
     Args:
         df (pd.DataFrame): DataFrame contendo os dados históricos do ativo.
-        investimento (float): Valor inicial do investimento.
+        col_ref (str): String contendo o nome da coluna de referencia do calculo.
+        col_result (str): String contendo o nome da coluna resultante do calculo.
     Returns:
-        pd.DataFrame: DataFrame com a coluna adicional "Investimento_Estrategia" representando o valor do investimento ao longo do tempo com a aplicação da estratégia com o EMA.
+        pd.DataFrame: DataFrame com a coluna razão para a estratégia.
     """
 
-    df_estrategia = df.copy()
+    df_progresso_estr: DataFrame = df.copy()
 
-    # Inicializa a coluna de investimento com o valor inicial
-    df_estrategia["Investimento_Estrategia"] = investimento
+    sinal: Series = (
+        (
+            df_progresso_estr.iloc[:, 6].shift(1)
+            <= df_progresso_estr.iloc[:, 7].shift(1)
+        )
+        & (
+            df_progresso_estr.iloc[:, 7].shift(1)
+            <= df_progresso_estr.iloc[:, 8].shift(1)
+        )
+        & (
+            df_progresso_estr.iloc[:, 8].shift(1)
+            <= df_progresso_estr.iloc[:, 9].shift(1)
+        )
+    )
 
-    # Aplica a estratégia de investimento com base nas EMAs (colunas: 6, 7, 8 e 9)
-    for i in range(1, len(df_estrategia)):
-        if (
-            df_estrategia.iloc[i, 6]
-            > df_estrategia.iloc[i, 7]
-            > df_estrategia.iloc[i, 8]
-            > df_estrategia.iloc[i, 9]
-        ):
-            # Aplica variação percentual ao investimento anterior
-            df_estrategia.loc[i, "Investimento_Estrategia"] = round(
-                df_estrategia.loc[i - 1, "Investimento_Estrategia"]
-                * (1 + df_estrategia.loc[i, "Pctg_Variação"]),
-                2,
-            )
+    df_progresso_estr[col_result] = np.where(
+        sinal, 0.0, df_progresso_estr[col_razao]
+    )
 
-        elif (
-            df_estrategia.iloc[i, 6]
-            < df_estrategia.iloc[i, 7]
-            < df_estrategia.iloc[i, 8]
-            < df_estrategia.iloc[i, 9]
-        ):
-            # Interrompe o investimento, mantendo o valor anterior
-            df_estrategia.loc[i, "Investimento_Estrategia"] = round(
-                df_estrategia.loc[i - 1, "Investimento_Estrategia"], 2
-            )
+    return df_progresso_estr
 
-        else:
-            # Aplica variação percentual ao investimento anterior
-            df_estrategia.loc[i, "Investimento_Estrategia"] = round(
-                df_estrategia.loc[i - 1, "Investimento_Estrategia"]
-                * (1 + df_estrategia.loc[i, "Pctg_Variação"]),
-                2,
-            )
 
-    return df_estrategia
+## PROJEÇÃO INVESTIMENTO ##
+
+
+def adicionar_col_investimento(
+    df: DataFrame, investimento: float, col_ref: str, col_result: str
+) -> DataFrame:
+    """
+    Calcula o progresso do valor absoluto do investimento ao longo do tempo.
+    Args:
+        df (pd.DataFrame): DataFrame contendo os dados históricos do ativo.
+        investimento (float): O valor usado para simular o investimento.
+        col_ref (str): String contendo o nome da coluna de referencia do calculo.
+        col_result (str): String contendo o nome da coluna resultante do calculo.
+    Returns:
+        pd.DataFrame: DataFrame com a coluna de investimento calculada.
+    """
+
+    df_retorno_estr: DataFrame = df.copy()
+
+    df_retorno_estr[col_result] = round(
+        investimento * (1 + df_retorno_estr[col_ref]).cumprod(), 2
+    )
+
+    return df_retorno_estr
+
+
+## PRODUTO CUMULATIVO ##
+
+
+def produto_cumulativo(x: Series) -> Series:
+    """
+    Retorna o produto cumulativo da variação percentual de x, para plotagem de graficos.
+    Args:
+        x (Series): Serie de valores absolutos a serem convertidos em porcentagem cumulativa.
+    """
+
+    return ((1 + x).cumprod()) - 1
 
 
 """
@@ -143,7 +183,7 @@ TODO:
 [X] remover colunas desnecessárias: Dividends, Stock Splits, Capital Gains
 [X] remover funções redundantes
 [X] ajustar os textos do notebook
-[ ] ajustar vizualização dos gráficos para apresentar a variação percentual do investimento ao invés do valor absoluto
+[X] ajustar vizualização dos gráficos para apresentar a variação percentual do investimento ao invés do valor absoluto
 [ ] criar função para plotar gráficos
 [ ] adicionar SQQQ ao notebook de avaliação da estratégia
 [ ] criar ou adaptar a função de estratégia para contemplar os dois investimentos

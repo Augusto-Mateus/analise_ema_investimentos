@@ -14,12 +14,12 @@ Este projeto de **Análise Quantitativa** visa testar a eficácia da **Média M�
 * Manipulação de Dados com Pandas
 * Visualização de Dados para Comparação de Performance
 
-## 📊 Resultados Chave (timeframe de 1 ano com intervalos de 1 dia)
+## 📊 Resultados Chave (timeframe de 8 anos com intervalos de 1 dia)
 
 | Estratégia | Retorno Total |
 | :--- | :--- |
-| **EMA** | ~ +131,76% |
-| **Buy & Hold** | ~ +49,93% |
+| **EMA** | ~ +1246,86% |
+| **Buy & Hold** | ~ +1152,96% |
 
 ![Imagem output.png](https://raw.githubusercontent.com/Augusto-Mateus/analise_ema_investimentos/refs/heads/main/img/output.png)
 
@@ -31,9 +31,16 @@ Este projeto de **Análise Quantitativa** visa testar a eficácia da **Média M�
 * **Pandas:** Manipulação e preparo dos dados.
 * **yfinance:** Download dos dados históricos do TQQQ.
 * **Matplotlib:** Criação de gráficos de comparação de performance.
+* **NumPy:** Empregada para otimizar operações.
+
+## 🔄 Melhorias Recentes
+
+* **Remoção de Redundâncias:** O notebook e o módulo foram otimizados para eliminar cálculos duplicados e simplificar a lógica.
+* **Ajustes nos Gráficos:** Os gráficos foram aprimorados para melhorar a clareza e a apresentação dos dados, com legendas mais informativas e escalas ajustadas.
+* **Estrutura Modular:** O código foi reorganizado para facilitar a reutilização e a manutenção.
+* **Remoção de lookahead:** A lógica de implementação da estratégia foi ajustada para retornar resultados menos enviesados.
 
 ## ⏭️ Próximas Etapas (Roadmap)
 
 * **Inclusão do SQQQ:** Adicionar a lógica para operar no ativo inverso (**SQQQ**) durante tendências de baixa, buscando rentabilidade em quedas.
-* **Otimização do EMA:** Implementar um módulo de backtesting para analisar e encontrar o *span* ideal do EMA para diferentes *timeframes*.
 * **Combinação de Indicadores:** Adicionar **RSI** e **MACD** para validar os sinais e reduzir a latência e os sinais falsos da estratégia atual.
