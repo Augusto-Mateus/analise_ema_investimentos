@@ -21,7 +21,7 @@ Este projeto de **Análise Quantitativa** visa testar a eficácia da **Média M�
 | **EMA** | ~ +1246,86% |
 | **Buy & Hold** | ~ +1152,96% |
 
-![Imagem output.png](https://raw.githubusercontent.com/Augusto-Mateus/analise_ema_investimentos/refs/heads/main/img/output.png)
+![Imagem output.png](https://github.com/Augusto-Mateus/analise_ema_investimentos/blob/main/grafs/output.png?raw=true)
 
 É importante notar que este resultado é recorte de um timeframe específico com um span específico. O resultado pode variar de acordo com as configurações.
 
